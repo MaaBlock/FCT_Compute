@@ -2,15 +2,17 @@
 #define FCT_COMPUTE_H
 
 #include "thirdparty/thirdparty.h"
-#include "ComputeTypeTraits.h"
-#include "ComputeConcepts.h"
-#include "ComputeBuffer.h"
-#include "ComputeImage.h"
-#include "ComputeDSL.h"
-#include "ComputeKernel.h"
-#include "ComputeStream.h"
-#include "ComputeDevice.h"
-#include "ComputeContext.h"
-#include "ComputePass.h"
+#include "core/ComputeTypeTraits.h"
+#include "core/ComputeConcepts.h"
+#include "core/BackendConcepts.h"
+#include "core/BackendConfig.h"
+#include "core/ComputeBuffer.h"
+#include "core/ComputeImage.h"
+#include "core/ComputeStream.h"
+#include "dsl/ComputeDSL.h"
+#include "dsl/ComputeKernel.h"
+#include "core/ComputeDevice.h"
+#include "core/ComputeContext.h"
+#include "core/ComputePass.h"
 
 #endif // FCT_COMPUTE_H

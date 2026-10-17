@@ -3,39 +3,46 @@ cmake_minimum_required(VERSION 3.26)
 include(platform/platform.cmake)
 include(../../Config/set_utf8_compiler_encoding.cmake OPTIONAL)
 
-if(MSVC AND MSVC_VERSION GREATER_EQUAL 1940 AND DEFINED ENV{CUDA_PATH_V13_0})
-    file(TO_CMAKE_PATH "$ENV{CUDA_PATH_V13_0}" _cuda_v13_root)
-    if(EXISTS "${_cuda_v13_root}/bin/nvcc.exe")
-        set(CUDAToolkit_ROOT "${_cuda_v13_root}" CACHE PATH "CUDA Toolkit root directory" FORCE)
-        set(CMAKE_CUDA_COMPILER "${_cuda_v13_root}/bin/nvcc.exe" CACHE FILEPATH "CUDA compiler" FORCE)
+set(FCT_COMPUTE_BACKEND "LUISA" CACHE STRING "Compile-time compute backend for FCT_Compute")
+set_property(CACHE FCT_COMPUTE_BACKEND PROPERTY STRINGS "LUISA")
+
+if(FCT_COMPUTE_BACKEND STREQUAL "LUISA")
+    if(MSVC AND MSVC_VERSION GREATER_EQUAL 1940 AND DEFINED ENV{CUDA_PATH_V13_0})
+        file(TO_CMAKE_PATH "$ENV{CUDA_PATH_V13_0}" _cuda_v13_root)
+        if(EXISTS "${_cuda_v13_root}/bin/nvcc.exe")
+            set(CUDAToolkit_ROOT "${_cuda_v13_root}" CACHE PATH "CUDA Toolkit root directory" FORCE)
+            set(CMAKE_CUDA_COMPILER "${_cuda_v13_root}/bin/nvcc.exe" CACHE FILEPATH "CUDA compiler" FORCE)
+        endif()
     endif()
-endif()
 
-set(_fct_compute_prev_build_shared_libs_defined FALSE)
-if(DEFINED BUILD_SHARED_LIBS)
-    set(_fct_compute_prev_build_shared_libs_defined TRUE)
-    set(_fct_compute_prev_build_shared_libs "${BUILD_SHARED_LIBS}")
-endif()
+    set(_fct_compute_prev_build_shared_libs_defined FALSE)
+    if(DEFINED BUILD_SHARED_LIBS)
+        set(_fct_compute_prev_build_shared_libs_defined TRUE)
+        set(_fct_compute_prev_build_shared_libs "${BUILD_SHARED_LIBS}")
+    endif()
 
-set(LUISA_COMPUTE_ENABLE_DSL ON CACHE BOOL "Enable C++ DSL" FORCE)
-set(LUISA_COMPUTE_BUILD_TESTS OFF CACHE BOOL "Build tests for LuisaCompute" FORCE)
-set(LUISA_COMPUTE_ENABLE_GUI OFF CACHE BOOL "Enable GUI support" FORCE)
-set(LUISA_COMPUTE_ENABLE_FALLBACK OFF CACHE BOOL "Enable Fallback backend" FORCE)
-set(LUISA_COMPUTE_ENABLE_CLANG_CXX OFF CACHE BOOL "Enable ClangTooling-based C++ shading language" FORCE)
-set(LUISA_COMPUTE_ENABLE_HIP OFF CACHE BOOL "Enable HIP backend" FORCE)
-set(LUISA_COMPUTE_USE_SYSTEM_STL ON CACHE BOOL "Use system STL" FORCE)
-set(LUISA_COMPUTE_USE_SYSTEM_SPDLOG ON CACHE BOOL "Use system spdlog" FORCE)
-set(LUISA_COMPUTE_CHECK_BACKEND_DEPENDENCIES ON CACHE BOOL "Check backend dependencies" FORCE)
+    set(LUISA_COMPUTE_ENABLE_DSL ON CACHE BOOL "Enable C++ DSL" FORCE)
+    set(LUISA_COMPUTE_BUILD_TESTS OFF CACHE BOOL "Build tests for LuisaCompute" FORCE)
+    set(LUISA_COMPUTE_ENABLE_GUI OFF CACHE BOOL "Enable GUI support" FORCE)
+    set(LUISA_COMPUTE_ENABLE_FALLBACK OFF CACHE BOOL "Enable Fallback backend" FORCE)
+    set(LUISA_COMPUTE_ENABLE_CLANG_CXX OFF CACHE BOOL "Enable ClangTooling-based C++ shading language" FORCE)
+    set(LUISA_COMPUTE_ENABLE_HIP OFF CACHE BOOL "Enable HIP backend" FORCE)
+    set(LUISA_COMPUTE_USE_SYSTEM_STL ON CACHE BOOL "Use system STL" FORCE)
+    set(LUISA_COMPUTE_USE_SYSTEM_SPDLOG ON CACHE BOOL "Use system spdlog" FORCE)
+    set(LUISA_COMPUTE_CHECK_BACKEND_DEPENDENCIES ON CACHE BOOL "Check backend dependencies" FORCE)
 
-if(NOT TARGET luisa::compute)
-    add_subdirectory(ThirdParty/LuisaCompute EXCLUDE_FROM_ALL)
-endif()
+    if(NOT TARGET luisa::compute)
+        add_subdirectory(ThirdParty/LuisaCompute EXCLUDE_FROM_ALL)
+    endif()
 
-if(_fct_compute_prev_build_shared_libs_defined)
-    set(BUILD_SHARED_LIBS "${_fct_compute_prev_build_shared_libs}" CACHE BOOL "" FORCE)
+    if(_fct_compute_prev_build_shared_libs_defined)
+        set(BUILD_SHARED_LIBS "${_fct_compute_prev_build_shared_libs}" CACHE BOOL "" FORCE)
+    else()
+        unset(BUILD_SHARED_LIBS CACHE)
+        unset(BUILD_SHARED_LIBS)
+    endif()
 else()
-    unset(BUILD_SHARED_LIBS CACHE)
-    unset(BUILD_SHARED_LIBS)
+    message(FATAL_ERROR "Unsupported FCT_COMPUTE_BACKEND: ${FCT_COMPUTE_BACKEND}")
 endif()
 
 file(GLOB_RECURSE FCT_COMPUTE_SOURCES
@@ -83,15 +90,17 @@ endforeach()
 target_include_directories(FCT_Compute PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../FCT/include/FCT>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../FCT/src>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../FCT_RHI/include/FCT>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../FCT_RHI/src>
     $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(FCT_Compute PUBLIC
-    FCT
-    luisa::compute
-)
+target_link_libraries(FCT_Compute PUBLIC FCT)
+
+if(FCT_COMPUTE_BACKEND STREQUAL "LUISA")
+    target_compile_definitions(FCT_Compute PUBLIC FCT_COMPUTE_BACKEND_LUISA=1)
+    target_link_libraries(FCT_Compute PUBLIC luisa::compute)
+endif()
 
 function(target_link_fct_compute_libraries target_name)
     target_link_libraries(${target_name} FCT_Compute)
