@@ -1,0 +1,3 @@
+[submodule "ThirdParty/LuisaCompute"]
+	path = ThirdParty/LuisaCompute
+	url = https://github.com/MaaBlock/LuisaCompute
