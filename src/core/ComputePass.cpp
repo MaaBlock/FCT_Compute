@@ -51,6 +51,8 @@ namespace FCT::Compute {
           m_stream(std::move(stream)) {}
 
     Status ComputePass::dispatch() noexcept {
+        ZoneScoped();
+        ZoneName(m_name.c_str(), m_name.size());
         if (!m_device || !m_stream) {
             return FailedPreconditionError(StrCat("ComputePass [", m_name, "] device or stream is not initialized."));
         }
@@ -59,6 +61,8 @@ namespace FCT::Compute {
     }
 
     Status ComputePass::dispatch(FCT::ComputeExecutionContext& context) {
+        ZoneScoped();
+        ZoneName(m_name.c_str(), m_name.size());
         if (!m_device || !m_stream) {
             return FailedPreconditionError(StrCat("ComputePass [", m_name, "] device or stream is not initialized."));
         }
